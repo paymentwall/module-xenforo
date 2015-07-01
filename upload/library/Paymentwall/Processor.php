@@ -32,15 +32,7 @@ class Paymentwall_Processor extends bdPaygate_Processor_Abstract {
 			bdPaygate_Processor_Abstract::CURRENCY_CAD,
 			bdPaygate_Processor_Abstract::CURRENCY_AUD,
 			bdPaygate_Processor_Abstract::CURRENCY_GBP,
-			bdPaygate_Processor_Abstract::CURRENCY_EUR,
-			bdPaygate_Processor_Abstract::CURRENCY_RUB,
-			bdPaygate_Processor_Abstract::CURRENCY_UAH,
-			bdPaygate_Processor_Abstract::CURRENCY_TRY,
-			bdPaygate_Processor_Abstract::CURRENCY_PLN,
-			bdPaygate_Processor_Abstract::CURRENCY_CLN,
-			bdPaygate_Processor_Abstract::CURRENCY_PHP,
-			bdPaygate_Processor_Abstract::CURRENCY_BRL,
-			bdPaygate_Processor_Abstract::CURRENCY_MXN,
+			bdPaygate_Processor_Abstract::CURRENCY_EUR
 		);
 	}
 	
