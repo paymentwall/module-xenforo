@@ -51,11 +51,11 @@
         <phrase title="option_group_paymentwall_description" version_id="4" version_string="0.9-dev">
             <![CDATA[Application settings for Paymentwall]]></phrase>
         <phrase title="option_Paymentwall_appKey" version_id="4" version_string="0.9-dev">
-            <![CDATA[Paymentwall App Key]]></phrase>
+            <![CDATA[Paymentwall Project Key]]></phrase>
         <phrase title="option_Paymentwall_appKey_explain" version_id="4" version_string="0.9-dev">
-            <![CDATA[This is your unique application key. You can get your application key in Applications > Application Settings of your Paymentwall Merchant Area. To sign up for Paymentwall, click <a href="http://paymentwall.com/signup/merchant?source=xenforo">here</a>.]]></phrase>
+            <![CDATA[This is your unique project key. You can get your project key in Projects > Settings of your Paymentwall Merchant Area. To sign up for Paymentwall, click <a href="http://paymentwall.com/signup/merchant?source=xenforo">here</a>.]]></phrase>
         <phrase title="option_Paymentwall_appSecret" version_id="4" version_string="0.9-dev">
-            <![CDATA[Paymentwall App Secret]]></phrase>
+            <![CDATA[Paymentwall Secret Key]]></phrase>
         <phrase title="option_Paymentwall_appSecret_explain" version_id="1" version_string="0.9-dev">
             <![CDATA[Your Paymentwall secret key. This key is used to sign your widget and pingback requests to prevent attacks to your website.]]></phrase>
         <phrase title="option_Paymentwall_widgetCode" version_id="4" version_string="0.9-dev">
