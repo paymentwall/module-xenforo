@@ -4,6 +4,7 @@ $startTime = microtime(true);
 $fileDir = dirname(__FILE__);
 
 require($fileDir . '/library/XenForo/Autoloader.php');
+
 XenForo_Autoloader::getInstance()->setupAutoloader($fileDir . '/library');
 
 XenForo_Application::initialize($fileDir . '/library', $fileDir);
@@ -19,17 +20,14 @@ $processor->initCallbackHandling(new Zend_Controller_Request_Http());
 $logExtra = array();
 
 try {
-    if (!$processor->validateRequest($logMessage)) {
-        $logType = 'error';
-
-        $response->setHttpResponseCode(500);
-    } else if (!$processor->validatePreConditions($logMessage)) {
-        $logType = 'error';
-    } else {
-        list($logType, $logMessage) = $processor->processTransaction();
+    if (!($processor->validateRequest() && $processor->validatePreConditions())) {
+        throw new Exception($processor->getLogMessage(), 500);
     }
+
+    list($logType, $logMessage) = $processor->processTransaction();
+
 } catch (Exception $e) {
-    $response->setHttpResponseCode(500);
+    $response->setHttpResponseCode($e->getCode());
     XenForo_Error::logException($e);
 
     $logType = 'error';

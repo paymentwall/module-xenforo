@@ -1,6 +1,6 @@
 <?php
 
-require_once XenForo_Application::getInstance()->getRootDir() . '/library/Paymentwall/lib/paymentwall-php/lib/paymentwall.php';
+require_once XenForo_Application::getInstance()->getRootDir() . '/library/Paymentwall/common.php';
 
 /**
  * Handles user upgrade processing with Paymentwall.
@@ -9,7 +9,14 @@ require_once XenForo_Application::getInstance()->getRootDir() . '/library/Paymen
  */
 class XenForo_UserUpgradeProcessor_Paymentwall
 {
+    const PAYMENT_REGULAR_OFFER = 0;
+    const PAYMENT_VIRTUAL_CURRENCY = 1;
     const PAYMENT_CHARGE_BACK = 2;
+    const PAYMENT_STATUS_CANCELED = 'cancelled';
+    const PAYMENT_STATUS_PROCESSED = 'processed';
+    const PROCESSER_ID = 'paymentwall';
+
+    protected $options;
 
     /**
      * @var Zend_Controller_Request_Http
@@ -72,17 +79,13 @@ class XenForo_UserUpgradeProcessor_Paymentwall
     protected $alreadyprocessed = null;
 
     /**
-     * @var The transaction error message
+     * @var The transaction log messages
      */
-    protected $errormsg = null;
+    protected $logMessages = array();
 
     function __construct()
     {
-        $options = XenForo_Application::getOptions();
-        $this->appKey = $options->get('Paymentwall_appKey');
-        $this->appSecret = $options->get('Paymentwall_appSecret');
-        $this->widgetCode = $options->get('Paymentwall_widgetCode');
-        $this->testMode = $options->get('Paymentwall_testMode');
+        $this->options = XenForo_Application::getOptions();
     }
 
     /**
@@ -117,20 +120,22 @@ class XenForo_UserUpgradeProcessor_Paymentwall
     /**
      * Validates the callback request is valid. If failure happens, the response should
      * tell the processor to retry.
+     * @return bool
      *
-     * @param string $errorString Output error string
-     *
-     * @return boolean
      */
-    public function validateRequest(&$errorString)
+    public function validateRequest()
     {
-        $this->initPaymentwallConfigs();
+        initPaymentwallConfigs(
+            $this->options->get('Paymentwall_appKey'),
+            $this->options->get('Paymentwall_appSecret')
+        );
+
         $pingback = new Paymentwall_Pingback($_GET, $_SERVER['REMOTE_ADDR']);
 
         if ($pingback->validate()) {
             return true;
         } else {
-            $errorString = $pingback->getErrorSummary();
+            $this->logMessages[] = $pingback->getErrorSummary();
             return false;
         }
     }
@@ -157,12 +162,12 @@ class XenForo_UserUpgradeProcessor_Paymentwall
         if (!$this->alreadyprocessed) {
             switch ($this->_filtered['type']) {
                 case self::PAYMENT_CHARGE_BACK:
-                    $type = 'cancelled';
+                    $type = self::PAYMENT_STATUS_CANCELED;
                     break;
-                case '1':
+                case self::PAYMENT_VIRTUAL_CURRENCY:
                     $type = bdPaygate_Processor_Abstract::PAYMENT_STATUS_ACCEPTED;
                     break;
-                case '0':
+                case self::PAYMENT_REGULAR_OFFER:
                     $type = bdPaygate_Processor_Abstract::PAYMENT_STATUS_ACCEPTED;
                     break;
                 default:
@@ -170,7 +175,7 @@ class XenForo_UserUpgradeProcessor_Paymentwall
             }
 
         } else {
-            $type = 'already processed';
+            $type = self::PAYMENT_STATUS_PROCESSED;
         }
 
         $this->_bdUpgradeModel->log($processor, $transactionId, $type, $message, $details);
@@ -193,7 +198,7 @@ class XenForo_UserUpgradeProcessor_Paymentwall
      */
     public function getProcessorId()
     {
-        return 'paymentwall';
+        return self::PROCESSER_ID;
     }
 
     /**
@@ -213,72 +218,77 @@ class XenForo_UserUpgradeProcessor_Paymentwall
      */
     public function getLogDetails()
     {
-        $details = $this->_filtered;
-        return $details;
+        return $this->_filtered;
     }
 
     /**
      * Validates pre-conditions on the callback. These represent things that likely wouldn't get fixed
      * (and generally shouldn't happen), so retries are not necessary.
      *
-     * @param string $errorString
-     *
      * @return boolean
      */
-    public function validatePreConditions(&$errorString)
+    public function validatePreConditions()
     {
 
         $itemParts = explode('|', $this->_filtered['custom'], 4);
         if (count($itemParts) != 4) {
-            $errorString = 'Invalid item (custom)';
+            $this->logMessages[] = 'Invalid item (custom)';
             return false;
         }
 
         list($userId, $userUpgradeId, $validationType, $validation) = $itemParts;
 
-
-        $user = XenForo_Model::create('XenForo_Model_User')->getFullUserById($userId);
-        if (!$user) {
-            $errorString = 'Invalid user';
-            return false;
-        }
-
-
-        $this->_user = $user;
+        $this->_user = XenForo_Model::create('XenForo_Model_User')->getFullUserById($userId);
+        $this->_upgrade = $this->_upgradeModel->getUserUpgradeById($userUpgradeId);
         $tokenParts = explode(',', $validation);
-        if (count($tokenParts) != 3 || sha1($tokenParts[1] . $user['csrf_token']) != $tokenParts[2]) {
-            $errorString = 'Invalid validation';
-            return false;
-        }
-
-        $upgrade = $this->_upgradeModel->getUserUpgradeById($userUpgradeId);
-        if (!$upgrade) {
-            $errorString = 'Invalid user upgrade';
-            return false;
-        }
-
-        $this->_upgrade = $upgrade;
-        if (!$this->_filtered['ref']) {
-            $errorString = 'No reference ID';
-            return false;
-        }
-
         $transaction = $this->_upgradeModel->getProcessedTransactionLog($this->_filtered['ref']);
+
+        $continue = $this->handleValidate(array(
+            array('result' => $this->_user, 'message' => 'Invalid user'),
+            array(
+                'result' => !(count($tokenParts) != 3 || sha1($tokenParts[1] . $this->_user['csrf_token']) != $tokenParts[2]),
+                'message' => 'Invalid validation'
+            ),
+            array('result' => $this->_upgrade, 'message' => 'Invalid user upgrade'),
+            array('result' => $this->_filtered['ref'], 'message' => 'No reference ID')
+        ));
+
+        if (!$continue) return $continue;
+
         if ($transaction) {
             if ($this->_filtered['type'] != self::PAYMENT_CHARGE_BACK) {
                 $this->alreadyprocessed = true;
-                $errorString = 'Transaction already processed';
+                $this->logMessages[] = 'Transaction already processed';
                 return false;
             }
         }
 
-        $upgradeRecord = $this->_upgradeModel->getActiveUserUpgradeRecord($this->_user['user_id'], $this->_upgrade['user_upgrade_id']);
-        if ($upgradeRecord) {
-            $this->_upgradeRecordId = $upgradeRecord['user_upgrade_record_id'];
-            $this->_upgradeRecord = $upgradeRecord;
+        $this->_upgradeRecord = $this->_upgradeModel->getActiveUserUpgradeRecord(
+            $this->_user['user_id'],
+            $this->_upgrade['user_upgrade_id']
+        );
+
+        if ($this->_upgradeRecord) {
+            $this->_upgradeRecordId = $this->_upgradeRecord['user_upgrade_record_id'];
         }
 
         return true;
+    }
+
+    /**
+     * @param array $conditions
+     * @return bool
+     */
+    private function handleValidate($conditions = array())
+    {
+        $flag = true;
+        foreach ($conditions as $cond) {
+            if (!$cond['result']) {
+                $this->logMessages[] = $cond['message'];
+                if ($flag) $flag = false;
+            }
+        }
+        return $flag;
     }
 
     /**
@@ -304,12 +314,11 @@ class XenForo_UserUpgradeProcessor_Paymentwall
         return array('info', 'OK, no action');
     }
 
-    function initPaymentwallConfigs()
+    /**
+     * @return string
+     */
+    function getLogMessage()
     {
-        Paymentwall_Config::getInstance()->set(array(
-            'api_type' => Paymentwall_Config::API_GOODS,
-            'public_key' => $this->appKey,
-            'private_key' => $this->appSecret
-        ));
+        return implode('<br>', $this->logMessages);
     }
 }
