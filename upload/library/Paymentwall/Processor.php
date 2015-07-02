@@ -1,107 +1,121 @@
 <?php
 
-class Paymentwall_Processor extends bdPaygate_Processor_Abstract {
+require(dirname(__FILE__) . '/lib/paymentwall-php/lib/paymentwall.php');
 
+class Paymentwall_Processor extends bdPaygate_Processor_Abstract
+{
     protected $appKey;
     protected $appSecret;
     protected $widgetCode;
-        
-	public function isAvailable() {
-		$options = XenForo_Application::getOptions();
-		$this->appKey = $options->get('Paymentwall_appKey');
-		$this->appSecret = $options->get('Paymentwall_appSecret');
-		$this->widgetCode = $options->get('Paymentwall_widgetCode');
+    protected $testMode;
 
+    function __construct()
+    {
+        $options = XenForo_Application::getOptions();
+        $this->appKey = $options->get('Paymentwall_appKey');
+        $this->appSecret = $options->get('Paymentwall_appSecret');
+        $this->widgetCode = $options->get('Paymentwall_widgetCode');
+        $this->testMode = $options->get('Paymentwall_testMode');
+    }
+
+    public function isAvailable()
+    {
         // no application key secret key, and widget code
-		if (empty($this->appKey) || empty($this->appSecret) || empty ($this->widgetCode)) {
-			return false;
-		}
+        if (empty($this->appKey) || empty($this->appSecret) || empty ($this->widgetCode)) {
+            return false;
+        }
 
-		if ($this->_sandboxMode())
-		{
-			return false;
-		}
+        if ($this->_sandboxMode()) {
+            return false;
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	public function getSupportedCurrencies() {
+    public function getSupportedCurrencies()
+    {
+        return array(
+            bdPaygate_Processor_Abstract::CURRENCY_USD,
+            bdPaygate_Processor_Abstract::CURRENCY_CAD,
+            bdPaygate_Processor_Abstract::CURRENCY_AUD,
+            bdPaygate_Processor_Abstract::CURRENCY_GBP,
+            bdPaygate_Processor_Abstract::CURRENCY_EUR
+        );
+    }
 
-		return array(
-			bdPaygate_Processor_Abstract::CURRENCY_USD,
-			bdPaygate_Processor_Abstract::CURRENCY_CAD,
-			bdPaygate_Processor_Abstract::CURRENCY_AUD,
-			bdPaygate_Processor_Abstract::CURRENCY_GBP,
-			bdPaygate_Processor_Abstract::CURRENCY_EUR
-		);
-	}
-	
-	public function isRecurringSupported() {
-		return false;
-	}
-    
-	
-	public function validateCallback(Zend_Controller_Request_Http $request, &$transactionId, &$paymentStatus, &$transactionDetails, &$itemId) {
-		// return true;
-	}
-	
+    public function isRecurringSupported()
+    {
+        return false;
+    }
+
+
+    public function validateCallback(Zend_Controller_Request_Http $request, &$transactionId, &$paymentStatus, &$transactionDetails, &$itemId)
+    {
+        // return true;
+    }
+
     /*
      * Calculate the parameters so we know we are sending a legitimate (unaltered) request to the servers
      */
-    function calculateWidgetSignature($params, $secret) {
-        // work with sorted data
-        ksort($params);
-        // generate the base string
-        $baseString = '';
-        foreach($params as $key => $value) {
-            $baseString .= $key . '=' . $value;
-        }
-        $baseString .= $secret;
-        return md5($baseString);
+    function calculateWidgetSignature($params, $secret)
+    {
+
     }
 
-	public function generateFormData($amount, $currency, $itemName, $itemId, $recurringInterval = false, $recurringUnit = false, array $extraData = array()) {
-		
+    public function generateFormData($amount, $currency, $itemName, $itemId, $recurringInterval = false, $recurringUnit = false, array $extraData = array())
+    {
+        $this->initPaymentwallConfigs();
+
         $itemParts = explode('|', $itemId, 4);
         $upgradeId = $itemParts[3];
         $validationType = $itemParts[0];
         $validation = XenForo_Visitor::getInstance()->get('csrf_token_page');
 
         $this->_assertAmount($amount);
-		$this->_assertCurrency($currency);
-		$this->_assertItem($itemName, $itemId);
-		$this->_assertRecurring($recurringInterval, $recurringUnit);
-        
-        $userid = XenForo_Visitor::getInstance()->get('user_id');
-        $email = XenForo_Visitor::getInstance()->get('email');
-        $custom = $userid . '|' . $upgradeId . '|' . $validationType . '|' . $validation;
-        
-        $pwVars = array (
-            'key' => $this->appKey,
-            'uid' => $userid,
-            'widget' => $this->widgetCode,
-            'sign_version' => 2,
-            'amount' => $amount,
-            'email' =>  $email,
-            'currencyCode' => $currency,
-            'ag_name' => $itemName,
-            'ag_external_id' => $itemId,
-            'ag_type' => 'fixed',
-            'custom' => $custom,
-            'success_url' => $this->_generateReturnUrl($extraData)
-        );
+        $this->_assertCurrency($currency);
+        $this->_assertItem($itemName, $itemId);
+        $this->_assertRecurring($recurringInterval, $recurringUnit);
 
-        $pwVars['sign'] = $this->calculateWidgetSignature($pwVars, $this->appSecret);
-		$formAction = "https://wallapi.com/api/subscription?" . http_build_query ( $pwVars );
-		$callToAction = new XenForo_Phrase('Paymentwall_call_to_action');
-		$_xfToken = XenForo_Visitor::getInstance()->get('csrf_token_page');
-		
-		$form = <<<EOF
-<form action="{$formAction}" method="POST">
-	<input type="submit" value="{$callToAction}" class="button" />
-</form>
+        $userid = XenForo_Visitor::getInstance()->get('user_id');
+        $custom = $userid . '|' . $upgradeId . '|' . $validationType . '|' . $validation;
+
+        $widget = new Paymentwall_Widget(
+            $userid,
+            $this->widgetCode,
+            array(
+                new Paymentwall_Product(
+                    $itemId,
+                    $amount,
+                    $currency,
+                    $itemName
+                )
+            ),
+            array(
+                'email' => XenForo_Visitor::getInstance()->get('email'),
+                'integration_module' => 'xenforo',
+                'test_mode' => $this->testMode,
+                'success_url' => $this->_generateReturnUrl($extraData),
+                'custom' => $custom,
+            ));
+
+        $callToAction = new XenForo_Phrase('Paymentwall_call_to_action');
+        $_xfToken = XenForo_Visitor::getInstance()->get('csrf_token_page');
+
+        $form = <<<EOF
+    <form action="{$widget->getUrl()}" method="POST">
+    <input type="submit" value="{$callToAction}" class="button" />
+    </form>
 EOF;
 
-		return $form;
-	}
+        return $form;
+    }
+
+    function initPaymentwallConfigs()
+    {
+        Paymentwall_Config::getInstance()->set(array(
+            'api_type' => Paymentwall_Config::API_GOODS,
+            'public_key' => $this->appKey,
+            'private_key' => $this->appSecret
+        ));
+    }
 }
