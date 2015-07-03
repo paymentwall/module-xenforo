@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<addon addon_id="Paymentwall" title="[bd] Paygate: Paymentwall" version_string="0.9-dev" version_id="4" url=""
+       install_callback_class="" install_callback_method="" uninstall_callback_class="" uninstall_callback_method="">
+    <admin_navigation/>
+    <admin_permissions/>
+    <admin_style_properties/>
+    <admin_templates/>
+    <code_events/>
+    <code_event_listeners>
+        <listener event_id="load_class_controller" execute_order="10" callback_class="Paymentwall_Listener"
+                  callback_method="load_class" active="1" description=""/>
+        <listener event_id="load_class_model" execute_order="10" callback_class="Paymentwall_Listener"
+                  callback_method="load_class" active="1" description=""/>
+    </code_event_listeners>
+    <cron/>
+    <email_templates/>
+    <optiongroups>
+        <group group_id="paymentwall" display_order="1" debug_only="0"/>
+        <option option_id="Paymentwall_appKey" edit_format="textbox" data_type="string" can_backup="1">
+            <default_value></default_value>
+            <edit_format_params></edit_format_params>
+            <sub_options></sub_options>
+            <relation group_id="paymentwall" display_order="0"/>
+        </option>
+        <option option_id="Paymentwall_appSecret" edit_format="textbox" data_type="string" can_backup="1">
+            <default_value></default_value>
+            <edit_format_params></edit_format_params>
+            <sub_options></sub_options>
+            <relation group_id="paymentwall" display_order="0"/>
+        </option>
+        <option option_id="Paymentwall_widgetCode" edit_format="textbox" data_type="string" can_backup="1">
+            <default_value></default_value>
+            <edit_format_params></edit_format_params>
+            <sub_options></sub_options>
+            <relation group_id="paymentwall" display_order="0"/>
+        </option>
+        <option option_id="Paymentwall_testMode" edit_format="onoff" data_type="unsigned_integer" can_backup="1">
+            <default_value>0</default_value>
+            <edit_format_params></edit_format_params>
+            <sub_options></sub_options>
+            <relation group_id="paymentwall" display_order="99"/>
+        </option>
+        <option option_id="Paymentwall_currencies" edit_format="textbox" data_type="string" can_backup="1">
+            <default_value></default_value>
+            <edit_format_params></edit_format_params>
+            <sub_options></sub_options>
+            <relation group_id="paymentwall" display_order="100"/>
+        </option>
+    </optiongroups>
+    <permissions>
+        <permission_groups/>
+        <permissions/>
+        <interface_groups/>
+    </permissions>
+    <phrases>
+        <phrase title="option_group_paymentwall" version_id="4" version_string="0.9-dev">
+            <![CDATA[Paymentwall]]></phrase>
+        <phrase title="option_group_paymentwall_description" version_id="4" version_string="0.9-dev">
+            <![CDATA[Application settings for Paymentwall]]></phrase>
+        <phrase title="option_Paymentwall_appKey" version_id="4" version_string="0.9-dev">
+            <![CDATA[Paymentwall Project Key]]></phrase>
+        <phrase title="option_Paymentwall_appKey_explain" version_id="4" version_string="0.9-dev">
+            <![CDATA[This is your unique project key. You can get your project key in Projects > Settings of your Paymentwall Merchant Area. To sign up for Paymentwall, click <a href="http://paymentwall.com/signup/merchant?source=xenforo">here</a>.]]></phrase>
+        <phrase title="option_Paymentwall_appSecret" version_id="4" version_string="0.9-dev">
+            <![CDATA[Paymentwall Secret Key]]></phrase>
+        <phrase title="option_Paymentwall_appSecret_explain" version_id="1" version_string="0.9-dev">
+            <![CDATA[Your Paymentwall secret key. This key is used to sign your widget and pingback requests to prevent attacks to your website.]]></phrase>
+        <phrase title="option_Paymentwall_widgetCode" version_id="4" version_string="0.9-dev">
+            <![CDATA[Paymentwall Widget Code]]></phrase>
+        <phrase title="option_Paymentwall_widgetCode_explain" version_id="1" version_string="0.9-dev">
+            <![CDATA[Your Paymentwall widget code]]></phrase>
+        <phrase title="option_Paymentwall_testMode" version_id="4" version_string="0.9-dev">
+            <![CDATA[Test Mode]]></phrase>
+        <phrase title="option_Paymentwall_testMode_explain" version_id="1" version_string="0.9-dev">
+            <![CDATA[Enable test mode]]></phrase>
+        <phrase title="option_Paymentwall_currencies" version_id="4" version_string="0.9-dev">
+            <![CDATA[Paymentwall Currency]]></phrase>
+        <phrase title="option_Paymentwall_currencies_explain" version_id="4" version_string="0.9-dev"><![CDATA[List of currency that you want to show in User Upgrade Currency.
+<br/><br/>
+<b>Note</b>:<br/>
+- Valid currency contains 3 characters only.<br/>
+- Separate by commas]]></phrase>
+        <phrase title="Paymentwall_call_to_action" version_id="1" version_string="0.9-dev"><![CDATA[Pay with Paymentwall]]></phrase>
+    </phrases>
+    <route_prefixes/>
+    <style_properties/>
+    <templates/>
+    <bb_code_media_sites/>
+</addon>
