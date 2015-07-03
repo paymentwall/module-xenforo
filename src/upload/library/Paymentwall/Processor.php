@@ -4,16 +4,8 @@ require(dirname(__FILE__) . '/common.php');
 
 class Paymentwall_Processor extends bdPaygate_Processor_Abstract
 {
-    const CURRENCY_RUB = 'rub';
-    const CURRENCY_UAH = 'uah';
-    const CURRENCY_TRY = 'try';
-    const CURRENCY_PLN = 'pln';
-    const CURRENCY_CLN = 'cln';
-    const CURRENCY_PHP = 'php';
-    const CURRENCY_BRL = 'brl';
-    const CURRENCY_MXN = 'mxn';
-
     protected $options;
+    protected $enableCurrencies;
 
     function __construct()
     {
@@ -42,21 +34,10 @@ class Paymentwall_Processor extends bdPaygate_Processor_Abstract
      */
     public function getSupportedCurrencies()
     {
-        return array(
-            bdPaygate_Processor_Abstract::CURRENCY_USD,
-            bdPaygate_Processor_Abstract::CURRENCY_CAD,
-            bdPaygate_Processor_Abstract::CURRENCY_AUD,
-            bdPaygate_Processor_Abstract::CURRENCY_GBP,
-            bdPaygate_Processor_Abstract::CURRENCY_EUR,
-            self::CURRENCY_RUB,
-            self::CURRENCY_UAH,
-            self::CURRENCY_TRY,
-            self::CURRENCY_PLN,
-            self::CURRENCY_CLN,
-            self::CURRENCY_PHP,
-            self::CURRENCY_BRL,
-            self::CURRENCY_MXN,
-        );
+        return array_keys(array_merge(
+            $this->getModelFromCache('bdPaygate_Model_Processor')->getEnabledCurrencies(),
+            Paymentwall_XenForo_Model_Currency::getCurrencies()
+        ));
     }
 
     /**
@@ -149,7 +130,6 @@ class Paymentwall_Processor extends bdPaygate_Processor_Abstract
             ));
 
         $callToAction = new XenForo_Phrase('Paymentwall_call_to_action');
-        //$_xfToken = XenForo_Visitor::getInstance()->get('csrf_token_page');
 
         $form = <<<EOF
     <form action="{$widget->getUrl()}" method="POST">
