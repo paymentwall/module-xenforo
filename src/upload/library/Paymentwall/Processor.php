@@ -5,7 +5,6 @@ require(dirname(__FILE__) . '/common.php');
 class Paymentwall_Processor extends bdPaygate_Processor_Abstract
 {
     protected $options;
-    protected $enableCurrencies;
 
     function __construct()
     {
