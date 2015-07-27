@@ -10,6 +10,7 @@ class Paymentwall_Listener
             'XenForo_ControllerAdmin_UserUpgrade',
             'XenForo_ControllerPublic_Misc',
             'XenForo_Model_Option',
+            'XenForo_Model_Currenry',
         );
 
         if (in_array($class, $classes)) {
