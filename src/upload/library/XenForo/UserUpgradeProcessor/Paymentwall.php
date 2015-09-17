@@ -302,12 +302,12 @@ class XenForo_UserUpgradeProcessor_Paymentwall
             case self::PAYMENT_CHARGE_BACK:
                 if ($this->_upgradeRecord) {
                     $this->_upgradeModel->downgradeUserUpgrade($this->_upgradeRecord);
-                    return array('cancel', 'Payment refunded/reversed, downgraded');
+                    return array('cancel', 'OK');
                 }
                 break;
             default:
                 $this->_upgradeRecordId = $this->_upgradeModel->upgradeUser($this->_user['user_id'], $this->_upgrade);
-                return array('payment', 'Payment received, upgraded/extended');
+                return array('payment', 'OK');
         }
 
         $this->alreadyprocessed = true;
